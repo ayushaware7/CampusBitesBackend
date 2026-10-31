@@ -4,10 +4,10 @@ package auth
 import (
 	"context"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
@@ -77,20 +77,21 @@ func (s *Service) Seed(ctx context.Context, username, password, canteenSlug stri
 }
 
 // Require rejects requests without a valid Bearer token and stores the admin's canteen in the context.
-func (s *Service) Require(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if !ok {
-			httpx.WriteError(w, apperr.Unauthorized("login required"))
-			return
-		}
-		var c claims
-		_, err := jwt.ParseWithClaims(raw, &c, func(*jwt.Token) (any, error) { return s.secret, nil },
-			jwt.WithValidMethods([]string{"HS256"}))
-		if err != nil {
-			httpx.WriteError(w, apperr.Unauthorized("invalid or expired token"))
-			return
-		}
-		next.ServeHTTP(w, r.WithContext(authctx.WithCanteen(r.Context(), c.CanteenID)))
-	})
+func (s *Service) Require(c *gin.Context) {
+	raw, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer ")
+	if !ok {
+		httpx.WriteError(c, apperr.Unauthorized("login required"))
+		c.Abort()
+		return
+	}
+	var cl claims
+	_, err := jwt.ParseWithClaims(raw, &cl, func(*jwt.Token) (any, error) { return s.secret, nil },
+		jwt.WithValidMethods([]string{"HS256"}))
+	if err != nil {
+		httpx.WriteError(c, apperr.Unauthorized("invalid or expired token"))
+		c.Abort()
+		return
+	}
+	c.Request = c.Request.WithContext(authctx.WithCanteen(c.Request.Context(), cl.CanteenID))
+	c.Next()
 }

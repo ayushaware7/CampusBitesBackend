@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/ayushaware7/CampusBitesBackend/internal/auth"
 	"github.com/ayushaware7/CampusBitesBackend/internal/canteen"
 	"github.com/ayushaware7/CampusBitesBackend/internal/config"
@@ -50,16 +52,17 @@ func main() {
 		log.Printf("warning: could not seed admin (run migrations and create the canteen first): %v", err)
 	}
 
-	mux := http.NewServeMux()
-	canteen.NewHandler(canteens).Register(mux)
-	auth.NewHandler(authSvc).Register(mux)
-	menu.NewHandler(menuSvc).Register(mux, authSvc.Require)
-	order.NewHandler(orderSvc).Register(mux, authSvc.Require)
-	payment.NewHandler(paymentSvc).Register(mux)
+	router := gin.New()
+	router.Use(gin.Recovery(), httpx.CORS(cfg.FrontendOrigin))
+	canteen.NewHandler(canteens).Register(router, authSvc.Require)
+	auth.NewHandler(authSvc).Register(router)
+	menu.NewHandler(menuSvc).Register(router, authSvc.Require)
+	order.NewHandler(orderSvc).Register(router, authSvc.Require)
+	payment.NewHandler(paymentSvc).Register(router)
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           httpx.CORS(cfg.FrontendOrigin)(mux),
+		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
