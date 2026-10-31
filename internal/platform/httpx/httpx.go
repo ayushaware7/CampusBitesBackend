@@ -7,16 +7,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/ayushaware7/CampusBitesBackend/internal/platform/apperr"
 )
 
-func JSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		log.Printf("write response: %v", err)
-	}
-}
+func JSON(c *gin.Context, status int, v any) { c.JSON(status, v) }
 
 var statusByKind = map[apperr.Kind]int{
 	apperr.KindInvalid:      http.StatusBadRequest,
@@ -27,29 +23,29 @@ var statusByKind = map[apperr.Kind]int{
 }
 
 // WriteError sends app errors with their message; anything else is logged and hidden behind a 500.
-func WriteError(w http.ResponseWriter, err error) {
+func WriteError(c *gin.Context, err error) {
 	if kind, ok := apperr.KindOf(err); ok {
-		JSON(w, statusByKind[kind], map[string]string{"error": err.Error()})
+		c.JSON(statusByKind[kind], gin.H{"error": err.Error()})
 		return
 	}
 	log.Printf("internal error: %v", err)
-	JSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 }
 
-// HandlerFunc is an http handler that returns its error instead of writing it.
-type HandlerFunc func(w http.ResponseWriter, r *http.Request) error
+// HandlerFunc is a gin handler that returns its error instead of writing it.
+type HandlerFunc func(c *gin.Context) error
 
-func Handle(fn HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := fn(w, r); err != nil {
-			WriteError(w, err)
+func Handle(fn HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := fn(c); err != nil {
+			WriteError(c, err)
 		}
 	}
 }
 
 // Decode reads a JSON body (max 1MB) and rejects unknown fields so typos fail loudly.
-func Decode(w http.ResponseWriter, r *http.Request, v any) error {
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
+func Decode(c *gin.Context, v any) error {
+	dec := json.NewDecoder(http.MaxBytesReader(c.Writer, c.Request.Body, 1<<20))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
 		return apperr.Invalid("invalid request body: %v", err)
@@ -57,25 +53,24 @@ func Decode(w http.ResponseWriter, r *http.Request, v any) error {
 	return nil
 }
 
-func PathID(r *http.Request, name string) (int64, error) {
-	id, err := strconv.ParseInt(r.PathValue(name), 10, 64)
+func PathID(c *gin.Context, name string) (int64, error) {
+	id, err := strconv.ParseInt(c.Param(name), 10, 64)
 	if err != nil || id <= 0 {
 		return 0, apperr.Invalid("invalid %s", name)
 	}
 	return id, nil
 }
 
-func CORS(origin string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			if r.Method == http.MethodOptions {
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
+func CORS(origin string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		h := c.Writer.Header()
+		h.Set("Access-Control-Allow-Origin", origin)
+		h.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
 	}
 }

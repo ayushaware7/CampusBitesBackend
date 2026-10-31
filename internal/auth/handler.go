@@ -3,6 +3,8 @@ package auth
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/ayushaware7/CampusBitesBackend/internal/platform/httpx"
 )
 
@@ -10,22 +12,22 @@ type Handler struct{ svc *Service }
 
 func NewHandler(svc *Service) *Handler { return &Handler{svc} }
 
-func (h *Handler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /auth/login", httpx.Handle(h.login))
+func (h *Handler) Register(r *gin.Engine) {
+	r.POST("/auth/login", httpx.Handle(h.login))
 }
 
-func (h *Handler) login(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) login(c *gin.Context) error {
 	var in struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if err := httpx.Decode(w, r, &in); err != nil {
+	if err := httpx.Decode(c, &in); err != nil {
 		return err
 	}
-	token, err := h.svc.Login(r.Context(), in.Username, in.Password)
+	token, err := h.svc.Login(c.Request.Context(), in.Username, in.Password)
 	if err != nil {
 		return err
 	}
-	httpx.JSON(w, http.StatusOK, map[string]string{"token": token})
+	httpx.JSON(c, http.StatusOK, gin.H{"token": token})
 	return nil
 }
