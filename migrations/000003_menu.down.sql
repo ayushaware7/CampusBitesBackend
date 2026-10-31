@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS item_addon_groups;
+DROP TABLE IF EXISTS addons;
+DROP TABLE IF EXISTS addon_groups;
+DROP TABLE IF EXISTS item_variants;
+DROP TABLE IF EXISTS items;
+DROP TABLE IF EXISTS categories;
