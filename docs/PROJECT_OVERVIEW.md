@@ -16,7 +16,7 @@ when the order is marked ready. No login for customers. Restaurant staff log in 
 | CampusBitesUI | React single-page app (customer app + admin) | `Desktop\Projects\CampusBitesUI` | `ayushaware7/CampusBitesUI` |
 
 A third project, `Desktop\Projects\YourBiteWebsite`, is the **Your Bite company website** (see "Two things we are building"). It is a separate
-codebase, scaffolded but not in git yet; its repo URL will be added here once created.
+codebase with its own repo: `ayushaware7/YourBite` (https://github.com/ayushaware7/YourBite, branch `main`).
 
 Each Campus Bites repo has its own `CLAUDE.md` with the working details. `Desktop\campusBites` and `Desktop\Minor` are old copies of the
 first prototype (Java backend, early React); ignore them.
@@ -76,10 +76,10 @@ checked by curl/build only, so re-test them if something looks off):
   behind its own route section.
 - **Per-restaurant branding:** migration `000006`, branding fields on `GET /canteens/{slug}`, admin `GET/PUT /admin/canteen`, UI `BrandContext`
   (name, logo, tagline, accent colour via `brand-*` Tailwind classes driven by CSS variables) and an admin **Branding** tab.
-- **Your Bite website** scaffolded in `YourBiteWebsite` with placeholder content (not pushed anywhere yet).
+- **Your Bite website** scaffolded in `YourBiteWebsite` with placeholder content (pushed to `ayushaware7/YourBite`).
 
-Branches: backend `feature/gin-router` (on top of `feature/modular-menu-orders-payments`), UI `feature/product-rebrand` (on top of
-`feature/new-backend-menu-orders`). Pull requests into `main` are still to open/merge; until then `main` holds the old flat design.
+Merged into `main` in both repos via pull requests (merge commits, history kept): backend PR #1 `feature/modular-menu-orders-payments` and #2 `feature/gin-router`;
+UI PR #1 `feature/new-backend-menu-orders` and #2 `feature/product-rebrand`. `main` now holds the modular, Gin, branded version. New work goes on feature branches.
 
 ## Known gaps and the next piece of work
 1. **Unpaid orders are stuck.** If a customer closes the Razorpay popup, the order stays `PENDING_PAYMENT` forever, is invisible
@@ -95,7 +95,7 @@ Branches: backend `feature/gin-router` (on top of `feature/modular-menu-orders-p
 2. Refunds on reject are manual (Razorpay dashboard). Automatic refunds not built.
 3. The Razorpay webhook endpoint exists but is off until `RAZORPAY_WEBHOOK_SECRET` is set (needs a public URL, e.g. ngrok).
 4. No rate limiting on the public endpoints. SQL layers have no automated tests (only unit tests with fakes + manual runs).
-5. Notifications ("order ready"), deleting `legacy/`, merging the PRs, rotating the secrets that leaked from the old Java repo.
+5. Notifications ("order ready"), deleting `legacy/`, rotating the secrets that leaked from the old Java repo.
 6. **Order-tracking security (parked, decide together with item 1).** Tracking uses canteen + 6-char pickup code (31-char alphabet, about 887M
    combinations) + phone, and the browser remembers `{code, phone}` as `lastOrder`. The real gap is no rate limiting. Proposed: Part 1 per-IP rate
    limit on `/orders/track` (about 10/min, in-memory middleware in `httpx`; needs the real client IP behind a proxy); Part 2 a per-order random
@@ -103,7 +103,7 @@ Branches: backend `feature/gin-router` (on top of `feature/modular-menu-orders-p
    fallback). Recommendation: Part 1 now, Part 2 together with "Pay now". No signup or OTP (too slow for scan-and-order).
 7. Branding gaps: the logo is a link only (no upload); no contrast check for very light accent colours; the Razorpay popup name and colour follow
    the branding but the Campus Bites logo file and orange remain the defaults.
-8. The Your Bite website needs real content (team, services, story, contact), images, a repo and hosting.
+8. The Your Bite website needs real content (team, services, story, contact), images and hosting.
 
 ## Working agreement with the owner
 - They want this **engineered, not vibe-coded**: for anything non-trivial, propose the design and the trade-offs first, get a

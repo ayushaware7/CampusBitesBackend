@@ -85,6 +85,6 @@ late-payment handling, and the parked order-tracking security design (per-IP rat
 Propose and agree the remaining decisions (hold time, reinstate vs refund, in-process vs `cmd/worker`, rate-limit numbers, proxy/client IP) before building.
 
 ## Git
-Branch `feature/gin-router` holds the current work: the Gin conversion plus the branding fields and admin branding routes. It is based on
-`feature/modular-menu-orders-payments`, whose PR to `main` is still pending. Commit/push only when asked, on a feature branch.
+`main` holds the modular monolith, the Gin router and the branding feature (merged via PRs #1 and #2). Do new work on a feature branch and
+open a PR. Commit/push only when asked.
 `.env`, `*.exe` and `/bin/` are gitignored.
